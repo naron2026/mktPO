@@ -174,7 +174,7 @@ export async function aiSuggest(body, { examplesFor } = {}) {
   const nforms = Math.min(6, Math.max(1, +cfg.nforms || 1));
   const key = cacheKey(cfg, nforms, entry);
   if (!cfg.fresh && cache.has(key)) return { suggestions: cache.get(key), ms: 0, cached: true };
-  const given = Array.isArray(cfg.examples) ? cfg.examples : (examplesFor ? examplesFor(cfg.lang, entry.id) : []);
+  const given = Array.isArray(cfg.examples) ? cfg.examples : (examplesFor ? await examplesFor(cfg.lang, entry.id) : []);
   const examples = given.filter((x) => x && typeof x.src === 'string' && typeof x.t === 'string').slice(0, 8);
   const { system, user } = prompts({ lang: String(cfg.lang || ''), langName: String(cfg.langName || cfg.lang || 'the target language'), nforms, entry, examples });
   const t0 = Date.now();

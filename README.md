@@ -31,16 +31,20 @@ Settings (environment variables):
 
 Example: `PO_WORKSPACE=~/code/app/locale npm start`
 
-## Deploy
+## Deploy on Vercel
 
-The server keeps the files and the team memory on disk, so it needs a host that
-runs `npm start` as a long-running server with a persistent disk. Serverless
-hosts such as Vercel or Netlify do not work: the API is missing there and saved
-files would not be kept.
+Vercel builds the React app and runs the API as a function (`api/index.js`).
+Functions have no lasting disk, so files and team memory are kept in Upstash Redis.
 
-On [Render](https://render.com): **New → Blueprint**, pick this repository. It
-reads `render.yaml` (web service, 1 GB disk at `/var/data`, health check at
-`/healthz`) and asks for `PO_PASSWORD`.
+1. Import the repository in Vercel (framework: Vite).
+2. **Storage → Upstash for Redis**, create a database and connect it to the project.
+   This sets `KV_REST_API_URL` and `KV_REST_API_TOKEN`.
+3. **Settings → Environment Variables**: add `PO_PASSWORD`. `middleware.js`
+   asks for it before showing anything; without it the site answers 503.
+4. Redeploy.
+
+Limits on Vercel: a request can be at most 4.5 MB, so larger `.po` files cannot
+be imported or saved; **Build .mo** only offers the download (no `.mo` file is kept).
 
 ## Use
 
@@ -85,7 +89,10 @@ If others use the server over the network (`HOST=0.0.0.0`), keys travel over pla
 ## Code
 
 - `shared/po.js`: parsing, writing, checks, `.pot` merge and `.mo` compiling, used by both the server and the browser.
-- `server/index.js`: Express API (`/api/files`, `/api/file`, `/api/mo`, `/api/tm/*`, `/api/ai/*`). In development it also runs Vite.
+- `server/app.js`: Express API (`/api/files`, `/api/file`, `/api/mo`, `/api/tm/*`, `/api/ai/*`).
+- `server/storage.js`: files and team memory on disk, or in Upstash Redis.
+- `server/index.js`: the local server (API plus Vite in development, the built app in production).
+- `api/index.js`, `middleware.js`, `vercel.json`: the Vercel deployment.
 - `server/ai.js`: AI suggestions through each provider's official SDK.
 - `src/`: the React app (`App.jsx`, `components/`).
 - `legacy/index.html`: the earlier single-file version that runs without a server.
