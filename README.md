@@ -26,9 +26,21 @@ Settings (environment variables):
 | `PO_WORKSPACE` | `./workspace` | Folder with the `.po`/`.pot` files. Point it at your project's `locale/` folder to edit the files in place. |
 | `PO_DATA` | `./data` | Where the shared team memory (`tm.json`) is kept. |
 | `PORT` | `5173` | Port. |
-| `HOST` | `127.0.0.1` | Use `0.0.0.0` to let others on the network use it. There is no login, so only do that on a trusted network. |
+| `HOST` | `127.0.0.1` | Use `0.0.0.0` to let others on the network use it. Set `PO_PASSWORD` when you do. |
+| `PO_PASSWORD` | (none) | When set, the browser asks for this password (any user name) before showing the editor or answering the API. |
 
 Example: `PO_WORKSPACE=~/code/app/locale npm start`
+
+## Deploy
+
+The server keeps the files and the team memory on disk, so it needs a host that
+runs `npm start` as a long-running server with a persistent disk. Serverless
+hosts such as Vercel or Netlify do not work: the API is missing there and saved
+files would not be kept.
+
+On [Render](https://render.com): **New → Blueprint**, pick this repository. It
+reads `render.yaml` (web service, 1 GB disk at `/var/data`, health check at
+`/healthz`) and asks for `PO_PASSWORD`.
 
 ## Use
 

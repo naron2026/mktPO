@@ -4,6 +4,7 @@ import express from 'express';
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { parsePO, prepareEntries, countsOf, compileMO, similarity } from '../shared/po.js';
 import { aiSuggest, aiModels } from './ai.js';
@@ -14,6 +15,7 @@ const PORT = +process.env.PORT || 5173;
 const HOST = process.env.HOST || '127.0.0.1';
 const WORKSPACE = path.resolve(process.env.PO_WORKSPACE || path.join(APP_DIR, 'workspace'));
 const DATA_DIR = path.resolve(process.env.PO_DATA || path.join(APP_DIR, 'data'));
+const PASSWORD = process.env.PO_PASSWORD || '';
 await fs.mkdir(WORKSPACE, { recursive: true });
 await fs.mkdir(DATA_DIR, { recursive: true });
 
@@ -122,6 +124,21 @@ function tmSuggest(lang, src, limit) {
    API
    ====================================================================== */
 const app = express();
+app.get('/healthz', (req, res) => res.send('ok'));
+
+// With PO_PASSWORD set, every page and API call needs it (HTTP Basic auth; any
+// user name). The browser asks once and sends it with later requests.
+const digest = (s) => crypto.createHash('sha256').update(s).digest();
+if (PASSWORD) {
+  const want = digest(PASSWORD);
+  app.use((req, res, next) => {
+    const [scheme, value] = (req.headers.authorization || '').split(' ');
+    const given = scheme === 'Basic' && value ? Buffer.from(value, 'base64').toString().replace(/^[^:]*:/, '') : null;
+    if (given !== null && crypto.timingSafeEqual(digest(given), want)) return next();
+    res.set('WWW-Authenticate', 'Basic realm="PO Messages Editor", charset="UTF-8"').status(401).send('Password required.');
+  });
+}
+
 app.use(express.json({ limit: '50mb' }));
 
 app.get('/api/config', (req, res) => res.json({ workspace: WORKSPACE }));
