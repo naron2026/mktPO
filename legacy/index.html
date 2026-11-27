@@ -1,0 +1,1346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PO Messages Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Khmer:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --ink: #17202B;
+  --soft: #4F5B6B;
+  --mute: #6B7686;
+  --line: #E3E7ED;
+  --line-2: #EEF1F4;
+  --field: #D5DBE3;
+  --ground: #F6F7F9;
+  --panel: #FFFFFF;
+  --blue: #2F5BD3;
+  --blue-dark: #1F44A8;
+  --blue-050: #EAF0FE;
+  --orange: #E08A3C;
+  --orange-ink: #8A3F06;
+  --orange-050: #FDF1E6;
+  --red: #B42318;
+  --red-ink: #8F1D14;
+  --red-050: #FDECEC;
+  --row: 34px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--ground); color: var(--ink); font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 13px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .5; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+[hidden] { display: none !important; }
+.km { font-family: 'Noto Sans Khmer', 'Khmer Sangam MN', 'Khmer OS', 'Inter', sans-serif; }
+.mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+.muted { color: var(--mute); font-style: italic; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Shared pieces */
+.topbar { background: var(--panel); border-bottom: 1px solid var(--line); padding: 6px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.brand { width: 28px; height: 28px; border-radius: 6px; font-size: 12px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex: none; }
+.btn { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--field); border-radius: 6px; font-size: 12.5px; background: var(--panel); font-weight: 500; white-space: nowrap; }
+.btn:hover { background: var(--ground); }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
+.btn.primary:hover { background: var(--blue-dark); }
+.btn.dark { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 600; }
+.btn svg { flex: none; width: 14px; height: 14px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.label { font-size: 11px; font-weight: 600; letter-spacing: .4px; color: var(--soft); }
+.pill { font-size: 11px; border-radius: 100px; padding: 1px 6px; }
+.field { height: 30px; border: 1px solid var(--field); border-radius: 6px; padding: 0 8px; background: var(--panel); }
+
+/* Start screen */
+#start { min-height: 100%; display: flex; flex-direction: column; }
+.start-wrap { width: 100%; max-width: 1120px; margin: 0 auto; padding: 24px 16px; display: flex; flex-direction: column; gap: 18px; }
+.start-wrap h1 { margin: 0; font-size: 24px; letter-spacing: -.5px; }
+.start-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.drop { flex: 2 1 420px; min-height: 180px; border: 2px dashed #B9C3D1; border-radius: 8px; background: var(--panel); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px; text-align: center; }
+.drop.over { border-color: var(--blue); background: var(--blue-050); }
+.drop button.link { border: 0; background: none; color: var(--blue); font-weight: 600; padding: 0; }
+.side-cards { flex: 1 1 300px; display: flex; flex-direction: column; gap: 8px; }
+.side-cards .card { padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.side-cards h2, .recent h2 { margin: 0; font-size: 14px; }
+.side-cards p { margin: 0; color: var(--soft); line-height: 1.4; }
+.banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; background: var(--orange-050); color: var(--orange-ink); }
+.banner span { flex: 1 1 300px; }
+.recent { display: flex; flex-direction: column; gap: 8px; }
+.recent-list { overflow-x: auto; }
+.recent-row { width: 100%; min-width: 640px; display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 220px 120px; gap: 12px; align-items: center; padding: 7px 12px; border: 0; border-bottom: 1px solid var(--line-2); background: none; text-align: left; }
+.recent-row:hover { background: var(--ground); }
+.recent-row:last-child { border-bottom: 0; }
+.bar { height: 6px; border-radius: 100px; background: var(--line); overflow: hidden; display: flex; }
+.bar > span { display: block; height: 100%; }
+
+/* Editor screen */
+#editor { height: 100%; display: flex; flex-direction: column; }
+.file-title { display: flex; align-items: center; gap: 8px; flex: 1 1 320px; min-width: 0; }
+.file-title .name { font-weight: 600; font-size: 14px; }
+.file-title .meta { font-size: 12px; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.actions { display: flex; flex-wrap: wrap; gap: 4px; }
+.progress { background: var(--panel); border-bottom: 1px solid var(--line); padding: 6px 16px 8px; display: flex; flex-direction: column; gap: 5px; font-size: 12px; }
+.progress .nums { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 20px; }
+.progress .bar { height: 4px; }
+.body { flex: 1; min-height: 0; display: flex; gap: 10px; padding: 10px 16px; }
+.main { flex: 999 1 640px; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.aside { flex: 1 1 280px; min-width: 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.list-card { flex: 1; min-height: 240px; display: flex; flex-direction: column; overflow: hidden; }
+.list-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; flex: 1 1 420px; }
+.tab { height: 26px; padding: 0 9px; border-radius: 6px; border: 0; background: var(--ground); font-size: 12px; font-weight: 500; }
+.tab[aria-selected="true"] { background: var(--ink); color: #fff; }
+.tab .n { opacity: .8; margin-left: 4px; }
+.search { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border: 1px solid var(--field); border-radius: 6px; flex: 0 1 260px; min-width: 180px; }
+.search svg { width: 14px; height: 14px; flex: none; }
+.search input { border: 0; outline: none; flex: 1; min-width: 0; background: transparent; }
+.cols, .row { display: grid; grid-template-columns: 20px minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: center; }
+.cols { padding: 4px 10px; background: var(--ground); border-bottom: 1px solid var(--line); }
+.list { flex: 1; overflow-y: auto; position: relative; }
+.list-inner { position: relative; }
+.row { position: absolute; left: 0; right: 0; height: var(--row); padding: 0 10px 0 7px; border: 0; border-bottom: 1px solid var(--line-2); border-left: 3px solid transparent; background: var(--panel); text-align: left; }
+.row:hover { background: #F9FAFB; }
+.row.on { background: var(--blue-050); border-left-color: var(--blue); }
+.row .st { display: flex; align-items: center; justify-content: center; }
+.row .st svg { width: 14px; height: 14px; }
+.row .cell { display: flex; flex-direction: column; gap: 0; min-width: 0; line-height: 1.3; }
+.row .trc { flex-direction: row; align-items: center; gap: 8px; }
+.row .one { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .ctx { font-size: 11px; color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.empty-list { padding: 24px 12px; text-align: center; color: var(--soft); }
+.edit-card { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.edit-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.src { font-size: 15px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 140px; overflow-y: auto; }
+.ph { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; color: var(--blue); background: var(--blue-050); border-radius: 6px; padding: 1px 6px; }
+.nl { color: var(--mute); }
+.note { font-size: 12px; color: var(--soft); background: var(--ground); border-radius: 6px; padding: 5px 8px; }
+.tr-box { display: flex; flex-direction: column; gap: 3px; }
+.tr-box textarea { font-size: 15px; line-height: 1.5; padding: 6px 10px; border: 1px solid var(--field); border-radius: 6px; resize: vertical; min-height: 44px; background: var(--panel); }
+.warn { display: flex; gap: 8px; align-items: flex-start; background: var(--red-050); color: var(--red-ink); border-radius: 6px; padding: 5px 8px; font-size: 12px; }
+.warn svg { width: 14px; height: 14px; }
+.warn ul { margin: 0; padding-left: 18px; }
+.edit-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.edit-actions .spacer { flex: 1; }
+.hint { font-size: 11px; color: var(--soft); }
+#btnReview[aria-pressed="true"] { background: var(--orange-050); border-color: var(--orange); color: var(--orange-ink); }
+.aside .card { padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+.aside h2 { margin: 0; font-size: 13px; }
+.sugg { text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+.sugg:hover { border-color: var(--blue); }
+.sugg .top { display: flex; align-items: center; gap: 8px; }
+.sugg .score { font-weight: 600; background: #F1F3F6; color: var(--soft); }
+.sugg .score.full { background: var(--blue-050); color: var(--blue-dark); }
+.sugg .from { font-size: 11px; color: var(--soft); flex: 1; }
+.sugg .use { font-size: 11px; font-weight: 600; color: var(--blue); }
+.sugg .t { font-size: 14px; overflow-wrap: anywhere; }
+.sugg .s { font-size: 11px; color: var(--soft); overflow-wrap: anywhere; }
+.kv { display: flex; flex-direction: column; gap: 2px; }
+.kv .v { line-height: 1.4; overflow-wrap: anywhere; white-space: pre-wrap; }
+.ref { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; background: var(--ground); border-radius: 4px; padding: 2px 6px; overflow-wrap: anywhere; }
+.aside textarea { font-size: 12px; padding: 4px 8px; border: 1px solid var(--field); border-radius: 6px; resize: vertical; }
+.footer { border-top: 1px solid var(--line); background: var(--panel); padding: 3px 16px; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 11px; color: var(--soft); }
+
+/* Dialogs and toast */
+dialog { border: 0; border-radius: 12px; padding: 0; width: min(520px, calc(100% - 32px)); box-shadow: 0 20px 50px rgba(16, 24, 40, .25); color: var(--ink); }
+dialog::backdrop { background: rgba(23, 32, 43, .45); }
+dialog form { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+dialog h2 { margin: 0; font-size: 15px; }
+dialog p { margin: 0; color: var(--soft); line-height: 1.5; }
+dialog .row-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+dialog label { display: flex; flex-direction: column; gap: 4px; }
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 8px; box-shadow: 0 8px 24px rgba(16, 24, 40, .25); max-width: calc(100% - 32px); z-index: 10; }
+
+@media (max-width: 1000px) {
+  #editor { height: auto; min-height: 100%; }
+  .body { flex: none; flex-wrap: wrap; }
+  .list-card { flex: none; height: 360px; }
+  .aside { overflow: visible; }
+}
+</style>
+</head>
+<body>
+
+<!-- ================= Start screen ================= -->
+<div id="start">
+  <header class="topbar">
+    <div class="brand">po</div>
+    <strong style="font-size: 16px">PO Messages Editor</strong>
+    <span style="color: var(--soft); font-size: 13px">Internal tool</span>
+  </header>
+  <div class="start-wrap">
+    <div id="draftBanner" class="banner" hidden>
+      <span id="draftText"></span>
+      <button type="button" class="btn" id="btnDiscardDraft">Discard</button>
+      <button type="button" class="btn primary" id="btnRestoreDraft">Restore</button>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h1>Open a translation file</h1>
+      <p style="margin: 0; font-size: 16px; color: var(--soft)">Works in the browser. Your file never leaves your computer.</p>
+    </div>
+    <div class="start-row">
+      <div class="drop" id="drop">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2F5BD3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+        <strong style="font-size: 18px">Drop a .po or .pot file here</strong>
+        <span style="color: var(--soft)">or <button type="button" class="link" id="btnChoose">choose a file</button> · messages.po, django.po, *.pot</span>
+      </div>
+      <div class="side-cards">
+        <div class="card">
+          <h2>Start a new language</h2>
+          <p>Pick a .pot template and a language. The plural rule is filled in for you.</p>
+          <label class="label" for="newLang">LANGUAGE</label>
+          <select id="newLang" class="field"></select>
+          <button type="button" class="btn primary" id="btnNewLang" style="justify-content: center">Choose .pot template</button>
+        </div>
+        <div class="card">
+          <h2>Update from a new .pot</h2>
+          <p>Open your .po first, then use <b>Update from .pot</b>. New strings are added, removed ones are kept as old entries, and changed ones are marked for review.</p>
+        </div>
+      </div>
+    </div>
+    <section class="recent" aria-label="Recent files">
+      <h2>Recent files</h2>
+      <div class="card recent-list" id="recentList"></div>
+    </section>
+  </div>
+</div>
+
+<!-- ================= Editor screen ================= -->
+<div id="editor" hidden>
+  <header class="topbar">
+    <div class="file-title">
+      <div class="brand">po</div>
+      <div style="min-width: 0">
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span class="name" id="fileName"></span>
+          <span class="pill" id="fileState"></span>
+        </div>
+        <div class="meta" id="fileMeta"></div>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn" id="btnOpen" title="Open another file">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Open</button>
+      <button type="button" class="btn" id="btnUpdatePot" title="Bring in new strings from a .pot template">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Update from .pot</button>
+      <button type="button" class="btn" id="btnPretranslate" title="Fill empty strings with exact matches from the team memory">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M4 12h7M4 17h5"/><path d="M15 13l3 3 4-6"/></svg>Pre-translate</button>
+      <button type="button" class="btn" id="btnValidate" title="Show strings with warnings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>Validate</button>
+      <button type="button" class="btn" id="btnProps" title="Language, plural rule and your name">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Properties</button>
+      <button type="button" class="btn" id="btnMo" title="Download the compiled .mo file">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download .mo</button>
+      <button type="button" class="btn primary" id="btnSave" title="Save (Ctrl+S)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>Save</button>
+    </div>
+  </header>
+
+  <div class="progress">
+    <div class="nums">
+      <strong id="pctText" style="font-size: 15px"></strong>
+      <span id="cDone" style="color: var(--soft)"></span>
+      <span id="cReview" style="color: var(--orange-ink)"></span>
+      <span id="cEmpty" style="color: var(--soft)"></span>
+      <span id="cWarn" style="color: var(--red)"></span>
+    </div>
+    <div class="bar" role="img" id="bar" aria-label="Translation progress"><span id="barDone" style="background: var(--blue)"></span><span id="barReview" style="background: var(--orange)"></span></div>
+  </div>
+
+  <div class="body">
+    <main class="main">
+      <section class="card list-card" aria-label="Strings">
+        <div class="list-tools">
+          <div class="tabs" id="tabs" role="tablist" aria-label="Filter strings"></div>
+          <label class="search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4F5B6B" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+            <span class="sr">Search strings</span>
+            <input type="search" id="q" placeholder="Search source or translation" title="Search (Ctrl+F)">
+          </label>
+        </div>
+        <div class="cols label"><span></span><span>SOURCE TEXT</span><span id="colTr">TRANSLATION</span></div>
+        <div class="list" id="list" role="listbox" aria-label="Strings" tabindex="-1"><div class="list-inner" id="listInner"></div></div>
+      </section>
+
+      <section class="card edit-card" id="editCard" aria-label="Translate the selected string">
+        <div class="edit-head">
+          <span class="label">SOURCE TEXT</span>
+          <span class="hint" id="posText"></span>
+        </div>
+        <div class="src" id="srcText"></div>
+        <div class="note" id="pluralNote" hidden></div>
+        <div id="trBoxes" style="display: flex; flex-direction: column; gap: 10px"></div>
+        <div class="warn" id="warnBox" role="alert" hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 1px" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>
+          <ul id="warnList"></ul>
+        </div>
+        <div class="edit-actions">
+          <button type="button" class="btn" id="btnReview" aria-pressed="false" title="Needs review (Ctrl+U)">
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="#E08A3C"/></svg>Needs review</button>
+          <button type="button" class="btn" id="btnCopy" title="Copy source text into the translation (Ctrl+B)">Copy source</button>
+          <button type="button" class="btn" id="btnPrev" title="Previous (Alt+↑)">Previous</button>
+          <button type="button" class="btn" id="btnNext" title="Next (Alt+↓)">Next</button>
+          <span class="spacer"></span>
+          <span class="hint">Ctrl + Enter: done, go to next unfinished</span>
+          <button type="button" class="btn dark" id="btnDone">Done and next</button>
+        </div>
+      </section>
+    </main>
+
+    <aside class="aside" aria-label="Help for this string">
+      <section class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <h2>Suggestions</h2>
+          <span class="hint" style="font-size: 12px">Team memory · Ctrl+1–4</span>
+        </div>
+        <div id="suggs" style="display: flex; flex-direction: column; gap: 10px"></div>
+      </section>
+      <section class="card" id="aboutCard">
+        <h2>About this string</h2>
+        <div class="kv" id="ctxBox" hidden><span class="label">CONTEXT</span><span class="v" id="ctxText"></span></div>
+        <div class="kv" id="noteBox" hidden><span class="label">NOTE FROM THE DEVELOPER</span><span class="v" id="noteText"></span></div>
+        <div class="kv" id="prevBox" hidden><span class="label">OLD SOURCE TEXT (BEFORE THE CHANGE)</span><span class="v" id="prevText" style="color: var(--soft)"></span></div>
+        <div class="kv" id="flagBox" hidden><span class="label">FORMAT</span><span class="v" id="flagText"></span></div>
+        <div class="kv" id="refsBox" hidden><span class="label">USED IN</span><div id="refsList" style="display: flex; flex-direction: column; gap: 6px"></div></div>
+        <label class="kv"><span class="label">COMMENT FOR THE TEAM</span>
+          <textarea id="comment" rows="2" placeholder="e.g. Check this term with the Syariah team"></textarea></label>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="footer">
+    <span id="fEnc"></span>
+    <span id="fLast"></span>
+    <span id="fShown"></span>
+  </footer>
+</div>
+
+<!-- ================= Dialogs ================= -->
+<dialog id="propsDlg">
+  <form method="dialog" id="propsForm">
+    <h2>Properties</h2>
+    <label><span class="label">YOUR NAME (SAVED AS LAST TRANSLATOR)</span><input class="field" id="pName" placeholder="Name &lt;email&gt;"></label>
+    <label><span class="label">LANGUAGE</span><select class="field" id="pLang"></select></label>
+    <label><span class="label">PLURAL RULE</span><input class="field mono" id="pPlural" style="font-size: 13px"></label>
+    <p>Changing the language fills in its usual plural rule. Change the rule only if you know the file needs another one.</p>
+    <div class="row-btns">
+      <button class="btn" value="cancel">Cancel</button>
+      <button class="btn primary" value="ok" id="propsOk">Apply</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="confirmDlg">
+  <form method="dialog">
+    <h2 id="cfTitle"></h2>
+    <p id="cfText"></p>
+    <div class="row-btns">
+      <button class="btn" value="cancel">Cancel</button>
+      <button class="btn primary" value="ok" id="cfOk">Continue</button>
+    </div>
+  </form>
+</dialog>
+
+<input type="file" id="fileInput" accept=".po,.pot" hidden>
+<input type="file" id="potInput" accept=".pot,.po" hidden>
+<div id="toast" role="status" hidden></div>
+
+<script>
+'use strict';
+
+/* ======================================================================
+   Small helpers
+   ====================================================================== */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
+};
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3500);
+}
+function confirmBox(title, text, okLabel) {
+  return new Promise((resolve) => {
+    const d = $('confirmDlg');
+    $('cfTitle').textContent = title; $('cfText').textContent = text; $('cfOk').textContent = okLabel || 'Continue';
+    d.onclose = () => resolve(d.returnValue === 'ok');
+    d.returnValue = ''; d.showModal();
+  });
+}
+function timeText(ts) {
+  const d = new Date(ts), now = new Date();
+  const hm = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (d.toDateString() === now.toDateString()) return 'Today ' + hm;
+  const y = new Date(now); y.setDate(now.getDate() - 1);
+  if (d.toDateString() === y.toDateString()) return 'Yesterday ' + hm;
+  return d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+}
+
+/* ======================================================================
+   Languages and plural rules
+   ====================================================================== */
+const ONE = 'nplurals=1; plural=0;';
+const TWO = 'nplurals=2; plural=(n != 1);';
+const LANGS = [
+  ['km', 'Khmer', ONE], ['ms', 'Malay', ONE], ['en', 'English', TWO], ['id', 'Indonesian', ONE],
+  ['th', 'Thai', ONE], ['vi', 'Vietnamese', ONE], ['lo', 'Lao', ONE], ['my', 'Burmese', ONE],
+  ['zh_CN', 'Chinese (Simplified)', ONE], ['zh_TW', 'Chinese (Traditional)', ONE], ['ja', 'Japanese', ONE], ['ko', 'Korean', ONE],
+  ['fr', 'French', 'nplurals=2; plural=(n > 1);'], ['de', 'German', TWO], ['es', 'Spanish', TWO], ['pt', 'Portuguese', TWO],
+  ['ar', 'Arabic', 'nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5);']
+];
+const langName = (code) => { const l = LANGS.find((x) => x[0] === code || x[0] === (code || '').split(/[_-]/)[0]); return l ? l[1] : (code || 'Unknown language'); };
+const langPlural = (code) => { const l = LANGS.find((x) => x[0] === code || x[0] === (code || '').split(/[_-]/)[0]); return l ? l[2] : TWO; };
+function fillLangSelect(sel, value) {
+  sel.innerHTML = LANGS.map(([c, n, p]) => `<option value="${esc(c)}">${esc(n)} (${esc(c)}) · ${p.match(/nplurals=(\d+)/)[1]} plural form${p.startsWith('nplurals=1') ? '' : 's'}</option>`).join('');
+  if (value && !LANGS.some((l) => l[0] === value)) sel.insertAdjacentHTML('afterbegin', `<option value="${esc(value)}">${esc(value)}</option>`);
+  if (value) sel.value = value;
+}
+
+/* ======================================================================
+   PO parsing and writing
+   Unchanged entries are written back exactly as they were read, so a save
+   only changes the strings you touched (small, readable git diffs).
+   ====================================================================== */
+const UNESC = { n: '\n', t: '\t', r: '\r', '"': '"', '\\': '\\', a: '\x07', b: '\b', f: '\f', v: '\v' };
+const unescapePO = (s) => s.replace(/\\(.)/g, (m, c) => (c in UNESC ? UNESC[c] : c));
+const escapePO = (s) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\t/g, '\\t').replace(/\r/g, '\\r');
+function parseQuoted(s) {
+  s = s.trim();
+  if (s[0] !== '"') return '';
+  return unescapePO(s.slice(1, s.lastIndexOf('"')));
+}
+function newEntry() {
+  return { ctx: null, id: null, idPlural: null, strs: [], comments: [], extracted: [], refs: [], refsRaw: [], flags: [], prev: [], obsolete: false, raw: [], dirty: false, warn: [] };
+}
+function parsePO(text) {
+  const lines = text.replace(/^﻿/, '').split(/\r?\n/);
+  const out = [];
+  let e = null, field = null;
+  const flush = () => { if (e && (e.id !== null || e.raw.length)) out.push(e); e = null; field = null; };
+  for (const line of lines) {
+    if (line.trim() === '') { flush(); continue; }
+    if (line.startsWith('#~')) {
+      if (e && !e.obsolete && e.id !== null) flush();
+      if (!e) e = newEntry();
+      e.obsolete = true; e.raw.push(line);
+      continue;
+    }
+    if (line[0] === '#') {
+      if (e && (e.id !== null || e.obsolete)) flush();
+      if (!e) e = newEntry();
+      e.raw.push(line);
+      const k = line[1];
+      if (k === ',') e.flags.push(...line.slice(2).split(',').map((s) => s.trim()).filter(Boolean));
+      else if (k === '.') e.extracted.push(line.slice(2).replace(/^ /, ''));
+      else if (k === ':') { e.refsRaw.push(line); e.refs.push(...line.slice(2).trim().split(/\s+/).filter(Boolean)); }
+      else if (k === '|') e.prev.push(line);
+      else e.comments.push(line.slice(1).replace(/^ /, ''));
+      continue;
+    }
+    const m = line.match(/^(msgctxt|msgid_plural|msgid|msgstr(?:\[(\d+)\])?)\s+(".*")\s*$/);
+    if (m) {
+      const key = m[1];
+      if (e && (e.obsolete || ((key === 'msgctxt' || key === 'msgid') && e.id !== null))) flush();
+      if (!e) e = newEntry();
+      e.raw.push(line);
+      const val = parseQuoted(m[3]);
+      if (key === 'msgctxt') { e.ctx = val; field = ['ctx']; }
+      else if (key === 'msgid') { e.id = val; field = ['id']; }
+      else if (key === 'msgid_plural') { e.idPlural = val; field = ['idPlural']; }
+      else { const i = m[2] !== undefined ? +m[2] : 0; e.strs[i] = val; field = ['strs', i]; }
+      continue;
+    }
+    if (line.trim()[0] === '"' && e && field) {
+      e.raw.push(line);
+      const v = parseQuoted(line);
+      if (field[0] === 'strs') e.strs[field[1]] += v; else e[field[0]] += v;
+      continue;
+    }
+    if (!e) e = newEntry();
+    e.raw.push(line);   // unknown line: keep it as it is
+  }
+  flush();
+  for (const x of out) {
+    for (let i = 0; i < x.strs.length; i++) if (x.strs[i] === undefined) x.strs[i] = '';
+    if (x.id !== null && !x.strs.length) x.strs = [''];
+    x.isHeader = x.id === '' && x.ctx === null && !x.obsolete;
+    x.editable = !x.obsolete && x.id !== null && !x.isHeader;
+  }
+  return out;
+}
+function wrapText(t, w) {
+  if (t.length <= w) return [t];
+  const res = [];
+  let cur = '';
+  for (const tok of t.split(/(?<= )/)) {
+    if (cur && (cur + tok).length > w) { res.push(cur); cur = tok; } else cur += tok;
+  }
+  if (cur) res.push(cur);
+  return res;
+}
+function fmtStr(key, s) {
+  const e = escapePO(s);
+  const inner = s.indexOf('\n');
+  if ((inner === -1 || inner === s.length - 1) && key.length + e.length + 3 <= 80) return [`${key} "${e}"`];
+  const out = [`${key} ""`];
+  for (const part of s.split(/(?<=\n)/)) for (const c of wrapText(escapePO(part), 76)) out.push(`"${c}"`);
+  return out;
+}
+function entryLines(e) {
+  const L = [];
+  e.comments.forEach((c) => L.push(c ? '# ' + c : '#'));
+  e.extracted.forEach((c) => L.push('#. ' + c));
+  e.refsRaw.forEach((r) => L.push(r));
+  if (e.flags.length) L.push('#, ' + e.flags.join(', '));
+  if (e.flags.includes('fuzzy')) e.prev.forEach((p) => L.push(p));
+  if (e.ctx !== null) L.push(...fmtStr('msgctxt', e.ctx));
+  L.push(...fmtStr('msgid', e.id));
+  if (e.idPlural !== null) {
+    L.push(...fmtStr('msgid_plural', e.idPlural));
+    e.strs.forEach((s, i) => L.push(...fmtStr(`msgstr[${i}]`, s)));
+  } else L.push(...fmtStr('msgstr', e.strs[0] || ''));
+  return L;
+}
+const serializeEntry = (e) => (e.dirty && !e.obsolete ? entryLines(e) : e.raw).join('\n');
+const serializePO = (entries) => entries.map(serializeEntry).join('\n\n') + '\n';
+
+/* Header (the entry with an empty msgid) */
+const headerOf = (entries) => entries.find((e) => e.isHeader);
+function headerGet(h, key) {
+  if (!h) return '';
+  const m = (h.strs[0] || '').match(new RegExp('^' + key + ':[ \\t]*(.*)$', 'mi'));
+  return m ? m[1].trim() : '';
+}
+function headerSet(h, key, val) {
+  let s = h.strs[0] || '';
+  const re = new RegExp('^' + key + ':.*$', 'mi');
+  if (re.test(s)) s = s.replace(re, `${key}: ${val}`);
+  else s += (s && !s.endsWith('\n') ? '\n' : '') + `${key}: ${val}\n`;
+  if (s !== h.strs[0]) { h.strs[0] = s; h.dirty = true; }
+}
+function makeHeader() {
+  const h = newEntry();
+  h.id = ''; h.strs = ['Content-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n'];
+  h.isHeader = true; h.editable = false; h.dirty = true;
+  return h;
+}
+const npluralsOf = (h) => { const m = headerGet(h, 'Plural-Forms').match(/nplurals\s*=\s*(\d+)/); return m ? Math.max(1, +m[1]) : 2; };
+
+/* ======================================================================
+   Checks
+   ====================================================================== */
+const PH_RE = /%\([\w.]+\)[-#0 +]*\d*(?:\.\d+)?[a-zA-Z]|%[-#0 +]*\d*(?:\.\d+)?[sdifuxXeEgGcr]|\{[\w.]*(?::[^{}]*)?\}/g;
+const isPositional = (p) => /^%[^(]/.test(p);
+const placeholders = (s) => (s.replace(/%%/g, '').match(PH_RE) || []);
+function warningsOf(e) {
+  if (!e.editable) return [];
+  const w = [];
+  const src = placeholders(e.id);
+  const named = new Set(src.concat(e.idPlural !== null ? placeholders(e.idPlural) : []).filter((p) => !isPositional(p)));
+  const pos = src.filter(isPositional).length;
+  e.strs.forEach((t, i) => {
+    if (!t) return;
+    const tp = placeholders(t);
+    const form = e.strs.length > 1 ? ` (form ${i + 1})` : '';
+    const mustAll = e.idPlural === null || i === e.strs.length - 1;
+    const missing = mustAll ? [...named].filter((p) => !tp.includes(p)) : [];
+    if (missing.length) w.push(`Missing placeholder ${missing.join(', ')}${form}. The app shows a raw code or fails if it is left out.`);
+    const extra = [...new Set(tp.filter((p) => !isPositional(p) && !named.has(p)))];
+    if (extra.length) w.push(`Placeholder ${extra.join(', ')} is not in the source text${form}.`);
+    const tpos = tp.filter(isPositional).length;
+    if (e.idPlural === null && tpos !== pos) w.push(`The source has ${pos} %-placeholder${pos === 1 ? '' : 's'} (like %s), the translation has ${tpos}.`);
+    if (e.id.endsWith('\n') !== t.endsWith('\n')) w.push(`Line break at the end does not match the source${form}.`);
+  });
+  return w;
+}
+function statusOf(e) {
+  if (!e.strs.some((s) => s)) return 'empty';
+  if (!e.strs.every((s) => s)) return 'empty';
+  return e.flags.includes('fuzzy') ? 'review' : 'done';
+}
+
+/* ======================================================================
+   Team memory (translation memory) in this browser
+   Every finished translation is remembered per language and offered as a
+   suggestion for similar source texts in any file.
+   ====================================================================== */
+const TM_KEY = 'poe.tm.v1';
+const TM_MAX = 30000;
+let TM = store.get(TM_KEY, {});
+const saveTM = debounce(() => {
+  const keys = Object.keys(TM);
+  if (keys.length > TM_MAX) keys.slice(0, keys.length - TM_MAX).forEach((k) => delete TM[k]);
+  if (!store.set(TM_KEY, TM)) toast('Team memory is full in this browser; older entries are not saved.');
+}, 1500);
+function tmAdd(e, lang, fileLabel) {
+  if (!e.editable || e.idPlural !== null || statusOf(e) !== 'done') return;
+  const k = lang + '\u0001' + e.id;
+  delete TM[k];   // re-insert so it counts as newest
+  TM[k] = { t: e.strs[0], f: fileLabel };
+}
+const gramCache = new Map();
+function grams(s) {
+  let g = gramCache.get(s);
+  if (g) return g;
+  const t = ' ' + s.toLowerCase().replace(/\s+/g, ' ') + ' ';
+  g = new Set();
+  for (let i = 0; i < t.length - 1; i++) g.add(t.substr(i, 2));
+  if (gramCache.size > 50000) gramCache.clear();
+  gramCache.set(s, g);
+  return g;
+}
+function similarity(a, b) {
+  if (a === b) return 100;
+  const A = grams(a), B = grams(b);
+  let n = 0;
+  for (const x of A) if (B.has(x)) n++;
+  return Math.min(99, Math.round((2 * n / (A.size + B.size)) * 100));
+}
+function tmSuggest(e, lang, limit) {
+  if (!e.editable) return [];
+  const prefix = lang + '\u0001';
+  const src = e.id;
+  const len = src.length;
+  const out = [];
+  for (const k in TM) {
+    if (!k.startsWith(prefix)) continue;
+    const s = k.slice(prefix.length);
+    if (Math.abs(s.length - len) > Math.max(6, len * 0.6)) continue;
+    const score = similarity(src, s);
+    if (score >= 60) out.push({ src: s, t: TM[k].t, from: TM[k].f, score });
+  }
+  out.sort((a, b) => b.score - a.score);
+  const seen = new Set();
+  return out.filter((x) => (seen.has(x.t) ? false : seen.add(x.t))).slice(0, limit || 4);
+}
+
+/* ======================================================================
+   Compile .mo (GNU gettext binary, little endian, no hash table)
+   Fuzzy and unfinished strings are left out, as msgfmt does.
+   ====================================================================== */
+function compileMO(entries) {
+  const enc = new TextEncoder();
+  const items = [];
+  for (const e of entries) {
+    if (e.obsolete || e.id === null) continue;
+    if (!e.isHeader && e.flags.includes('fuzzy')) continue;
+    if (!e.strs.length || e.strs.some((s) => !s)) continue;
+    let k = (e.ctx !== null ? e.ctx + '\x04' : '') + e.id;
+    if (e.idPlural !== null) k += '\0' + e.idPlural;
+    let v = e.idPlural !== null ? e.strs.join('\0') : e.strs[0];
+    if (e.isHeader) v = v.replace(/charset=utf-8/i, 'charset=UTF-8').replace(/^POT-Creation-Date:.*\n/m, '');   // as msgfmt writes it
+    items.push([enc.encode(k), enc.encode(v)]);
+  }
+  items.sort((a, b) => {
+    const n = Math.min(a[0].length, b[0].length);
+    for (let i = 0; i < n; i++) if (a[0][i] !== b[0][i]) return a[0][i] - b[0][i];
+    return a[0].length - b[0].length;
+  });
+  const N = items.length, O = 28, T = O + N * 8, H = T + N * 8;
+  let size = H;
+  items.forEach(([k, v]) => { size += k.length + 1 + v.length + 1; });
+  const buf = new ArrayBuffer(size), dv = new DataView(buf), u8 = new Uint8Array(buf);
+  [0x950412de, 0, N, O, T, 0, H].forEach((x, i) => dv.setUint32(i * 4, x, true));
+  let off = H;
+  items.forEach(([k], i) => { dv.setUint32(O + i * 8, k.length, true); dv.setUint32(O + i * 8 + 4, off, true); u8.set(k, off); off += k.length + 1; });
+  items.forEach(([, v], i) => { dv.setUint32(T + i * 8, v.length, true); dv.setUint32(T + i * 8 + 4, off, true); u8.set(v, off); off += v.length + 1; });
+  return { blob: new Blob([buf], { type: 'application/octet-stream' }), count: N };
+}
+
+/* ======================================================================
+   Merge a new .pot into the open file
+   ====================================================================== */
+function mergePot(oldEntries, potEntries, nplurals) {
+  const key = (e) => (e.ctx === null ? '' : e.ctx) + '\x04' + e.id;
+  const live = oldEntries.filter((e) => e.editable);
+  const byKey = new Map(live.map((e) => [key(e), e]));
+  const used = new Set();
+  const result = [];
+  let added = 0, changed = 0;
+  for (const p of potEntries) {
+    if (!p.editable) continue;
+    const o = byKey.get(key(p));
+    const ne = newEntry();
+    Object.assign(ne, { ctx: p.ctx, id: p.id, idPlural: p.idPlural, extracted: p.extracted.slice(), refs: p.refs.slice(), refsRaw: p.refsRaw.slice(), flags: p.flags.filter((f) => f !== 'fuzzy'), dirty: true, editable: true, isHeader: false });
+    const forms = p.idPlural !== null ? nplurals : 1;
+    ne.strs = Array(forms).fill('');
+    if (o) {
+      used.add(o);
+      ne.comments = o.comments.slice();
+      o.strs.slice(0, forms).forEach((s, i) => { ne.strs[i] = s; });
+      if (o.flags.includes('fuzzy')) { ne.flags.push('fuzzy'); ne.prev = o.prev.slice(); }
+    } else {
+      let best = null, bestScore = 0;
+      for (const c of live) {
+        if (used.has(c) || statusOf(c) === 'empty' || (c.idPlural === null) !== (p.idPlural === null)) continue;
+        const sc = similarity(p.id, c.id);
+        if (sc > bestScore) { best = c; bestScore = sc; }
+      }
+      if (best && bestScore >= 80) {
+        used.add(best);
+        ne.comments = best.comments.slice();
+        best.strs.slice(0, forms).forEach((s, i) => { ne.strs[i] = s; });
+        ne.flags.push('fuzzy');
+        ne.prev = (best.ctx !== null ? [`#| msgctxt "${escapePO(best.ctx)}"`] : []).concat([`#| msgid "${escapePO(best.id)}"`]);
+        changed++;
+      } else added++;
+    }
+    ne.warn = warningsOf(ne);
+    result.push(ne);
+  }
+  // Strings no longer in the template are kept at the end as old (#~) entries.
+  const gone = live.filter((e) => !used.has(e) && statusOf(e) !== 'empty').map((e) => {
+    const lines = entryLines(Object.assign({}, e, { extracted: [], refsRaw: [], prev: [] }));
+    const o = newEntry();
+    o.obsolete = true;
+    o.raw = lines.map((l) => (l.startsWith('# ') || l === '#' || l.startsWith('#,') ? l : '#~ ' + l));
+    return o;
+  });
+  const header = headerOf(oldEntries) || makeHeader();
+  const keepOld = oldEntries.filter((e) => e.obsolete);
+  return { entries: [header].concat(result, gone, keepOld), added, changed, removed: gone.length };
+}
+
+/* ======================================================================
+   Recent files (file handles kept in IndexedDB where the browser allows)
+   ====================================================================== */
+const idb = {
+  db: null,
+  open() {
+    if (this.db) return Promise.resolve(this.db);
+    return new Promise((res, rej) => {
+      if (!window.indexedDB) return rej(new Error('no idb'));
+      const r = indexedDB.open('poe', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('handles');
+      r.onsuccess = () => { this.db = r.result; res(this.db); };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  async put(k, v) { try { const db = await this.open(); db.transaction('handles', 'readwrite').objectStore('handles').put(v, k); } catch (e) { /* ignore */ } },
+  async get(k) {
+    try {
+      const db = await this.open();
+      return await new Promise((res) => { const r = db.transaction('handles').objectStore('handles').get(k); r.onsuccess = () => res(r.result); r.onerror = () => res(null); });
+    } catch (e) { return null; }
+  }
+};
+const RECENT_KEY = 'poe.recent.v1';
+const recentKey = (name, lang) => name + '|' + lang;
+function rememberRecent() {
+  if (!F) return;
+  const list = store.get(RECENT_KEY, []).filter((r) => r.key !== recentKey(F.name, F.lang));
+  const c = counts();
+  list.unshift({ key: recentKey(F.name, F.lang), name: F.name, lang: F.lang, pct: c.all ? Math.round(c.done / c.all * 100) : 0, at: Date.now(), handle: !!F.handle });
+  store.set(RECENT_KEY, list.slice(0, 8));
+  if (F.handle) idb.put(recentKey(F.name, F.lang), F.handle);
+}
+function renderRecent() {
+  const list = store.get(RECENT_KEY, []);
+  const box = $('recentList');
+  if (!list.length) { box.innerHTML = '<p class="empty-list" style="margin: 0">Files you open show here.</p>'; return; }
+  box.innerHTML = list.map((r, i) => `
+    <button type="button" class="recent-row" data-i="${i}">
+      <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+        <strong>${esc(r.name)}</strong>
+        <span style="font-size: 12px; color: var(--soft)">${r.handle ? 'Opens straight away' : 'You will be asked to pick the file'}</span>
+      </span>
+      <span style="color: var(--soft)">${esc(langName(r.lang))}</span>
+      <span style="display: flex; align-items: center; gap: 10px"><span class="bar" style="flex: 1"><span style="width: ${r.pct}%; background: var(--blue)"></span></span><strong style="width: 40px; text-align: right; font-size: 13px">${r.pct}%</strong></span>
+      <span style="font-size: 13px; color: var(--soft); text-align: right">${esc(timeText(r.at))}</span>
+    </button>`).join('');
+}
+$('recentList').addEventListener('click', async (ev) => {
+  const b = ev.target.closest('.recent-row');
+  if (!b) return;
+  const r = store.get(RECENT_KEY, [])[+b.dataset.i];
+  const h = r && r.handle ? await idb.get(r.key) : null;
+  if (h && h.queryPermission) {
+    try {
+      let p = await h.queryPermission({ mode: 'readwrite' });
+      if (p !== 'granted') p = await h.requestPermission({ mode: 'readwrite' });
+      if (p === 'granted') { const f = await h.getFile(); return loadText(await f.text(), f.name, h); }
+    } catch (e) { /* fall through to the picker */ }
+  }
+  pickFile();
+});
+
+/* ======================================================================
+   App state
+   ====================================================================== */
+let F = null;          // the open file: { name, entries, handle, dirty, lang, nplurals }
+let view = [];         // indexes into F.entries shown in the list
+let sel = -1;          // selected index into F.entries
+let filter = 'all';
+let query = '';
+
+function counts() {
+  const c = { all: 0, done: 0, review: 0, empty: 0, warn: 0 };
+  if (!F) return c;
+  for (const e of F.entries) {
+    if (!e.editable) continue;
+    c.all++; c[statusOf(e)]++;
+    if (e.warn.length) c.warn++;
+  }
+  return c;
+}
+function matches(e) {
+  if (!e.editable) return false;
+  if (filter === 'warn' ? !e.warn.length : (filter !== 'all' && statusOf(e) !== filter)) return false;
+  if (!query) return true;
+  const q = query.toLowerCase();
+  return e.id.toLowerCase().includes(q) || (e.idPlural || '').toLowerCase().includes(q) ||
+    (e.ctx || '').toLowerCase().includes(q) || e.strs.some((s) => s.toLowerCase().includes(q));
+}
+function rebuildView(keepSel) {
+  view = [];
+  F.entries.forEach((e, i) => { if (matches(e)) view.push(i); });
+  if (!keepSel || !view.includes(sel)) sel = view.length ? view[0] : -1;
+}
+
+function loadText(text, name, handle) {
+  const entries = parsePO(text);
+  if (name.toLowerCase().endsWith('.pot')) {
+    F = null;
+    pendingPot = { entries, name };
+    showStart();
+    $('newLang').focus();
+    toast('This is a template (.pot). Pick the language, then press Create.');
+    return;
+  }
+  openEntries(entries, name, handle, false);
+}
+function openEntries(entries, name, handle, dirty) {
+  let h = headerOf(entries);
+  if (!h) { h = makeHeader(); entries.unshift(h); }
+  const lang = headerGet(h, 'Language') || '';
+  const np = npluralsOf(h);
+  for (const e of entries) {
+    if (!e.editable) continue;
+    if (e.idPlural !== null && e.strs.length < np) { while (e.strs.length < np) e.strs.push(''); }
+    e.warn = warningsOf(e);
+  }
+  F = { name, entries, handle: handle || null, dirty: !!dirty, lang, nplurals: np, savedAt: null };
+  entries.forEach((e) => tmAdd(e, lang, name));
+  saveTM();
+  filter = 'all'; query = ''; $('q').value = '';
+  sel = -1;
+  rebuildView(false);
+  const firstTodo = entries.findIndex((e) => e.editable && (statusOf(e) !== 'done' || e.warn.length));
+  if (firstTodo >= 0) sel = firstTodo;
+  showEditor();
+  rememberRecent();
+  renderAll();
+  scrollToSel();
+}
+
+/* ======================================================================
+   Rendering
+   ====================================================================== */
+const ICON = {
+  done: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2F5BD3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Done"><path d="M5 12l5 5 9-10"/></svg>',
+  review: '<svg width="18" height="18" viewBox="0 0 24 24" role="img" aria-label="Needs review"><circle cx="12" cy="12" r="7" fill="#E08A3C"/></svg>',
+  empty: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A94A6" stroke-width="2" role="img" aria-label="Untranslated"><circle cx="12" cy="12" r="6.5"/></svg>',
+  warn: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B42318" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex: none" role="img" aria-label="Has a warning"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>'
+};
+const oneLine = (s) => s.replace(/\n/g, ' ↵ ');
+
+function showEditor() { $('start').hidden = true; $('editor').hidden = false; }
+function showStart() {
+  $('editor').hidden = true; $('start').hidden = false;
+  $('btnNewLang').textContent = pendingPot ? 'Create file from ' + pendingPot.name : 'Choose .pot template';
+  renderRecent(); renderDraftBanner();
+}
+
+function renderHeader() {
+  $('fileName').textContent = F.name;
+  const st = $('fileState');
+  if (F.dirty) { st.textContent = 'Unsaved changes'; st.style.cssText = 'background: var(--orange-050); color: var(--orange-ink)'; }
+  else { st.textContent = F.savedAt ? 'Saved ' + timeText(F.savedAt).replace('Today ', '') : (F.handle ? 'Saves to this file' : 'Save downloads a copy'); st.style.cssText = 'color: var(--soft)'; }
+  const np = F.nplurals;
+  $('fileMeta').textContent = `${F.lang ? langName(F.lang) + ' (' + F.lang + ')' : 'Language not set'} · ${np} plural form${np === 1 ? '' : 's'}`;
+  $('colTr').textContent = 'TRANSLATION · ' + (F.lang ? langName(F.lang).toUpperCase() : 'NO LANGUAGE');
+  document.title = (F.dirty ? '• ' : '') + F.name + ' · PO Messages Editor';
+  const h = headerOf(F.entries);
+  $('fEnc').textContent = 'UTF-8 · Plural-Forms: ' + (headerGet(h, 'Plural-Forms') || 'not set');
+  const last = headerGet(h, 'Last-Translator');
+  $('fLast').textContent = last ? 'Last translator: ' + last : '';
+}
+function renderProgress() {
+  const c = counts();
+  const pct = c.all ? Math.round(c.done / c.all * 100) : 0;
+  $('pctText').textContent = pct + '% translated';
+  $('cDone').textContent = c.done + ' done';
+  $('cReview').textContent = c.review + ' need review';
+  $('cEmpty').textContent = c.empty + ' untranslated';
+  $('cWarn').textContent = c.warn + ' with warnings';
+  $('barDone').style.width = (c.all ? c.done / c.all * 100 : 0) + '%';
+  $('barReview').style.width = (c.all ? c.review / c.all * 100 : 0) + '%';
+  $('bar').setAttribute('aria-label', `${pct}% translated, ${c.review} need review`);
+  const tabs = [['all', 'All', c.all], ['empty', 'Untranslated', c.empty], ['review', 'Needs review', c.review], ['warn', 'Warnings', c.warn], ['done', 'Done', c.done]];
+  $('tabs').innerHTML = tabs.map(([k, l, n]) => `<button type="button" class="tab" role="tab" data-f="${k}" aria-selected="${filter === k}">${l}<span class="n">${n}</span></button>`).join('');
+  $('fShown').textContent = `Showing ${view.length} of ${c.all} strings`;
+}
+let listRaf = 0;
+function renderList() {
+  cancelAnimationFrame(listRaf);
+  listRaf = requestAnimationFrame(() => {
+    const box = $('list'), inner = $('listInner');
+    const rowH = 34;
+    inner.style.height = view.length * rowH + 'px';
+    if (!view.length) {
+      inner.innerHTML = `<p class="empty-list">${query ? 'No strings match your search.' : 'Nothing here. Every string in this filter is done.'}</p>`;
+      inner.style.height = 'auto';
+      return;
+    }
+    const first = Math.max(0, Math.floor(box.scrollTop / rowH) - 6);
+    const last = Math.min(view.length, first + Math.ceil(box.clientHeight / rowH) + 12);
+    let html = '';
+    for (let p = first; p < last; p++) {
+      const i = view[p], e = F.entries[i], st = statusOf(e), tr = e.strs.find((s) => s) || '';
+      html += `<button type="button" class="row${i === sel ? ' on' : ''}" role="option" aria-selected="${i === sel}" data-i="${i}" style="top: ${p * rowH}px">
+        <span class="st">${ICON[st]}</span>
+        <span class="cell"><span class="one">${esc(oneLine(e.id))}</span>${e.ctx !== null ? `<span class="ctx">context: ${esc(e.ctx)}</span>` : ''}</span>
+        <span class="cell trc"><span class="one km${tr ? '' : ' muted'}">${tr ? esc(oneLine(tr)) : 'Not translated yet'}</span>${e.warn.length ? ICON.warn : ''}</span>
+      </button>`;
+    }
+    inner.innerHTML = html;
+  });
+}
+function scrollToSel() {
+  const p = view.indexOf(sel);
+  if (p < 0) return;
+  const box = $('list'), rowH = 34, top = p * rowH;
+  if (top < box.scrollTop) box.scrollTop = top;
+  else if (top + rowH > box.scrollTop + box.clientHeight) box.scrollTop = top - box.clientHeight + rowH * 2;
+  renderList();
+}
+function srcHTML(s) {
+  return s.split(/(%\([\w.]+\)[-#0 +]*\d*(?:\.\d+)?[a-zA-Z]|%[-#0 +]*\d*(?:\.\d+)?[sdifuxXeEgGcr]|\{[\w.]*(?::[^{}]*)?\}|\n)/).map((part) => {
+    if (!part) return '';
+    if (part === '\n') return '<span class="nl">↵</span>\n';
+    if (/^(%|\{)/.test(part) && placeholders(part).length) return `<span class="ph">${esc(part)}</span>`;
+    return esc(part);
+  }).join('');
+}
+function pluralLabels(n) {
+  if (n === 1) return ['Translation (all counts)'];
+  if (n === 2) return ['Singular (1)', 'Plural (2 or more)'];
+  return Array.from({ length: n }, (_, i) => 'Form ' + (i + 1));
+}
+function renderEditor() {
+  const e = F.entries[sel];
+  const card = $('editCard');
+  if (!e || !e.editable) {
+    card.querySelectorAll('button, textarea').forEach((x) => { x.disabled = true; });
+    $('srcText').textContent = 'Pick a string from the list.';
+    $('trBoxes').innerHTML = ''; $('pluralNote').hidden = true; $('warnBox').hidden = true; $('posText').textContent = '';
+    renderSide();
+    return;
+  }
+  card.querySelectorAll('button').forEach((x) => { x.disabled = false; });
+  const all = F.entries.filter((x) => x.editable);
+  $('posText').textContent = `String ${all.indexOf(e) + 1} of ${all.length}`;
+  $('srcText').innerHTML = srcHTML(e.id);
+  const pn = $('pluralNote');
+  if (e.idPlural !== null) {
+    pn.hidden = false;
+    pn.innerHTML = 'Plural: <span style="color: var(--ink)">' + srcHTML(e.idPlural) + '</span>' +
+      (F.nplurals === 1 ? ` · ${esc(langName(F.lang))} uses one form for every count, so there is one box.` : '');
+  } else pn.hidden = true;
+  const labels = e.idPlural !== null ? pluralLabels(e.strs.length) : ['Translation'];
+  const lname = F.lang ? langName(F.lang) : 'translation';
+  $('trBoxes').innerHTML = e.strs.map((s, i) => `
+    <div class="tr-box">
+      <label class="label" for="tr${i}">${esc(labels[i].toUpperCase())} · ${esc(lname.toUpperCase())}</label>
+      <textarea id="tr${i}" class="km" data-i="${i}" rows="${Math.min(6, Math.max(2, Math.ceil((e.id.length + 1) / 60)))}" placeholder="Type the ${esc(lname)} translation"></textarea>
+    </div>`).join('');
+  e.strs.forEach((s, i) => { $('tr' + i).value = s; });
+  $('btnReview').setAttribute('aria-pressed', String(e.flags.includes('fuzzy')));
+  renderWarnings();
+  renderSide();
+}
+function renderWarnings() {
+  const e = F.entries[sel];
+  const box = $('warnBox');
+  if (!e || !e.warn.length) { box.hidden = true; return; }
+  box.hidden = false;
+  $('warnList').innerHTML = e.warn.map((w) => `<li>${esc(w)}</li>`).join('');
+}
+let suggList = [];
+function renderSide() {
+  const e = F.entries[sel];
+  const ok = e && e.editable;
+  suggList = ok ? tmSuggest(e, F.lang, 4) : [];
+  $('suggs').innerHTML = suggList.length ? suggList.map((g, i) => `
+    <button type="button" class="sugg" data-s="${i}" title="Use this (Ctrl+${i + 1})">
+      <span class="top"><span class="pill score${g.score === 100 ? ' full' : ''}">${g.score}%</span><span class="from">${esc(g.from || '')}</span><span class="use">Use</span></span>
+      <span class="t km">${esc(g.t)}</span>
+      <span class="s">for “${esc(g.src)}”</span>
+    </button>`).join('')
+    : `<p style="margin: 0; color: var(--soft); line-height: 1.5">${ok ? 'No similar strings in the team memory yet. Finished translations are added as you work.' : ''}</p>`;
+  $('ctxBox').hidden = !(ok && e.ctx !== null);
+  if (ok && e.ctx !== null) $('ctxText').textContent = e.ctx;
+  $('noteBox').hidden = !(ok && e.extracted.length);
+  if (ok) $('noteText').textContent = e.extracted.join('\n');
+  const prevId = ok && e.flags.includes('fuzzy') ? e.prev.filter((l) => /^#\|\s*msgid /.test(l)).map((l) => parseQuoted(l.replace(/^#\|\s*msgid\s*/, ''))).join('') : '';
+  $('prevBox').hidden = !prevId;
+  $('prevText').textContent = prevId;
+  const fmt = ok ? e.flags.filter((f) => f !== 'fuzzy') : [];
+  $('flagBox').hidden = !fmt.length;
+  $('flagText').textContent = fmt.join(', ');
+  $('refsBox').hidden = !(ok && e.refs.length);
+  $('refsList').innerHTML = ok ? e.refs.slice(0, 12).map((r) => `<span class="ref">${esc(r)}</span>`).join('') + (e.refs.length > 12 ? `<span class="hint">and ${e.refs.length - 12} more</span>` : '') : '';
+  const c = $('comment');
+  c.disabled = !ok;
+  c.value = ok ? e.comments.join('\n') : '';
+}
+function renderAll() {
+  renderHeader();
+  renderProgress();
+  renderList();
+  renderEditor();
+}
+
+/* ======================================================================
+   Editing
+   ====================================================================== */
+function touch(e) {
+  e.dirty = true;
+  if (!F.dirty) { F.dirty = true; renderHeader(); }
+  saveDraft();
+}
+function select(i, focus) {
+  sel = i;
+  renderList();
+  renderEditor();
+  scrollToSel();
+  if (focus !== false) { const t = $('tr0'); if (t) t.focus(); }
+}
+function move(step) {
+  if (!view.length) return;
+  let p = view.indexOf(sel);
+  p = p < 0 ? 0 : (p + step + view.length) % view.length;
+  select(view[p]);
+}
+// The next string still to do, after the selected one: one in the list
+// first, else any (the caller then shows All).
+function nextUnfinished() {
+  const ed = F.entries, inView = new Set(view);
+  let any = -1;
+  for (let k = 1; k < ed.length; k++) {
+    const i = (sel + k) % ed.length, e = ed[i];
+    if (!e.editable || (statusOf(e) === 'done' && !e.warn.length)) continue;
+    if (inView.has(i)) return i;
+    if (any < 0) any = i;
+  }
+  return any;
+}
+function setFuzzy(e, on) {
+  const has = e.flags.includes('fuzzy');
+  if (on === has) return;
+  if (on) e.flags.unshift('fuzzy'); else { e.flags = e.flags.filter((f) => f !== 'fuzzy'); e.prev = []; }
+  touch(e);
+}
+function doneAndNext() {
+  const e = F.entries[sel];
+  if (!e || !e.editable) return;
+  if (statusOf(e) === 'empty') { toast('Type the translation first.'); return; }
+  setFuzzy(e, false);
+  tmAdd(e, F.lang, F.name); saveTM();
+  const next = nextUnfinished();
+  if (next >= 0 && !view.includes(next)) filter = 'all';
+  rebuildView(true);
+  renderProgress();
+  if (next >= 0) select(next);
+  else { renderList(); renderEditor(); toast('Everything is done. Save when you are ready.'); }
+}
+function applyTranslation(text) {
+  const e = F.entries[sel];
+  if (!e || !e.editable) return;
+  e.strs = e.strs.map((s, i) => (i === 0 || e.idPlural !== null ? text : s));
+  e.warn = warningsOf(e);
+  touch(e);
+  renderEditor(); renderList(); renderProgress();
+  const t = $('tr0'); if (t) t.focus();
+}
+
+/* ======================================================================
+   Files: open, save, .mo, .pot
+   ====================================================================== */
+const hasPicker = 'showOpenFilePicker' in window;
+const PO_TYPES = [{ description: 'Gettext translation', accept: { 'text/plain': ['.po', '.pot'] } }];
+async function pickFile() {
+  if (hasPicker) {
+    try {
+      const [h] = await window.showOpenFilePicker({ types: PO_TYPES });
+      const f = await h.getFile();
+      return loadText(await f.text(), f.name, h);
+    } catch (e) { if (e.name !== 'AbortError') toast('Could not open the file: ' + e.message); return; }
+  }
+  $('fileInput').click();
+}
+$('fileInput').addEventListener('change', async (ev) => {
+  const f = ev.target.files[0];
+  ev.target.value = '';
+  if (f) loadText(await f.text(), f.name, null);
+});
+async function guardUnsaved() {
+  if (!F || !F.dirty) return true;
+  return confirmBox('Leave without saving?', `${F.name} has changes that are not saved. They stay in this browser as a draft you can restore.`, 'Leave');
+}
+function download(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function stampHeader() {
+  const h = headerOf(F.entries);
+  const d = new Date(), z = -d.getTimezoneOffset(), pad = (n) => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}${z >= 0 ? '+' : '-'}${pad(Math.floor(Math.abs(z) / 60))}${pad(Math.abs(z) % 60)}`;
+  headerSet(h, 'PO-Revision-Date', stamp);
+  const me = store.get('poe.name', '');
+  if (me) headerSet(h, 'Last-Translator', me);
+  headerSet(h, 'X-Generator', 'PO Messages Editor');
+}
+async function save() {
+  if (!F) return;
+  stampHeader();
+  const text = serializePO(F.entries);
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  try {
+    if (!F.handle && 'showSaveFilePicker' in window) {
+      F.handle = await window.showSaveFilePicker({ suggestedName: F.name, types: PO_TYPES });
+      F.name = F.handle.name || F.name;
+    }
+    if (F.handle) {
+      const w = await F.handle.createWritable();
+      await w.write(blob); await w.close();
+    } else download(blob, F.name);
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    toast('Could not write the file (' + e.message + '). A copy was downloaded instead.');
+    download(blob, F.name);
+  }
+  // What was written becomes the new "as read" text of every entry.
+  for (const e of F.entries) if (e.dirty && !e.obsolete) { e.raw = entryLines(e); e.dirty = false; }
+  F.dirty = false; F.savedAt = Date.now();
+  F.entries.forEach((e) => tmAdd(e, F.lang, F.name)); saveTM();
+  clearDraft();
+  rememberRecent();
+  renderHeader();
+  toast(F.handle ? 'Saved.' : 'Saved as a download: ' + F.name);
+}
+function downloadMo() {
+  if (!F) return;
+  const { blob, count } = compileMO(F.entries);
+  download(blob, F.name.replace(/\.pot?$/i, '') + '.mo');
+  const c = counts();
+  toast(`.mo downloaded with ${Math.max(0, count - 1)} strings. Strings needing review or not translated (${c.review + c.empty}) are left out.`);
+}
+
+/* Start a new language from a .pot */
+let pendingPot = null;
+function startNewFromPot() {
+  const lang = $('newLang').value;
+  const entries = pendingPot.entries;
+  let h = headerOf(entries);
+  if (!h) { h = makeHeader(); entries.unshift(h); }
+  h.flags = h.flags.filter((f) => f !== 'fuzzy');
+  headerSet(h, 'Language', lang);
+  headerSet(h, 'Plural-Forms', langPlural(lang));
+  headerSet(h, 'Content-Type', 'text/plain; charset=UTF-8');
+  h.dirty = true;
+  const np = npluralsOf(h);
+  entries.forEach((e) => { if (e.editable) { e.strs = Array(e.idPlural !== null ? np : 1).fill(''); e.flags = e.flags.filter((f) => f !== 'fuzzy'); e.dirty = true; } });
+  const name = 'messages.po';
+  pendingPot = null;
+  openEntries(entries, name, null, true);
+  toast(`New ${langName(lang)} file made from the template. Save to choose where it goes.`);
+}
+$('potInput').addEventListener('change', async (ev) => {
+  const f = ev.target.files[0];
+  const mode = ev.target.dataset.mode;
+  ev.target.value = '';
+  if (!f) return;
+  const entries = parsePO(await f.text());
+  if (mode === 'new') { pendingPot = { entries, name: f.name }; startNewFromPot(); }
+  else updateFromPot(entries, f.name);
+});
+async function updateFromPot(potEntries, potName) {
+  const r = mergePot(F.entries, potEntries, F.nplurals);
+  const ok = await confirmBox('Update from ' + potName + '?',
+    `${r.added} new string${r.added === 1 ? '' : 's'} will be added, ${r.changed} changed string${r.changed === 1 ? ' is' : 's are'} filled from the closest old one and marked for review, and ${r.removed} string${r.removed === 1 ? '' : 's'} no longer used will be kept at the end as old entries.`, 'Update');
+  if (!ok) return;
+  F.entries = r.entries;
+  F.dirty = true;
+  filter = r.changed ? 'review' : (r.added ? 'empty' : 'all');
+  rebuildView(false);
+  renderAll();
+  saveDraft();
+}
+
+/* ======================================================================
+   Drafts: unsaved work survives a closed tab
+   ====================================================================== */
+const DRAFT_KEY = 'poe.draft.v1';
+function saveDraftNow() {
+  if (!F || !F.dirty) return;
+  const ok = store.set(DRAFT_KEY, { name: F.name, lang: F.lang, at: Date.now(), text: serializePO(F.entries) });
+  if (!ok) toast('This file is too big to keep a draft in the browser. Save often.');
+}
+const saveDraft = debounce(saveDraftNow, 1500);
+function clearDraft() { store.del(DRAFT_KEY); }
+function renderDraftBanner() {
+  const d = store.get(DRAFT_KEY, null);
+  $('draftBanner').hidden = !d;
+  if (d) $('draftText').textContent = `You have unsaved work on ${d.name} (${langName(d.lang)}) from ${timeText(d.at)}.`;
+}
+$('btnRestoreDraft').addEventListener('click', () => {
+  const d = store.get(DRAFT_KEY, null);
+  if (!d) return;
+  openEntries(parsePO(d.text), d.name, null, true);
+  toast('Draft restored. Save to write it to a file.');
+});
+$('btnDiscardDraft').addEventListener('click', () => { clearDraft(); renderDraftBanner(); });
+window.addEventListener('beforeunload', (ev) => { if (F && F.dirty) { ev.preventDefault(); ev.returnValue = ''; } });
+
+/* ======================================================================
+   Events
+   ====================================================================== */
+// Start screen
+$('btnChoose').addEventListener('click', pickFile);
+$('drop').addEventListener('click', (ev) => { if (ev.target === ev.currentTarget) pickFile(); });
+$('btnNewLang').addEventListener('click', () => { if (pendingPot) startNewFromPot(); else { $('potInput').dataset.mode = 'new'; $('potInput').click(); } });
+['dragenter', 'dragover'].forEach((t) => document.addEventListener(t, (ev) => { ev.preventDefault(); $('drop').classList.add('over'); }));
+['dragleave', 'drop'].forEach((t) => document.addEventListener(t, (ev) => { ev.preventDefault(); if (t === 'drop' || !ev.relatedTarget) $('drop').classList.remove('over'); }));
+document.addEventListener('drop', async (ev) => {
+  const item = ev.dataTransfer.items && ev.dataTransfer.items[0];
+  const file = ev.dataTransfer.files[0];
+  if (!file) return;
+  if (!/\.pot?$/i.test(file.name)) { toast('Drop a .po or .pot file.'); return; }
+  if (!(await guardUnsaved())) return;
+  let handle = null;
+  try { if (item && item.getAsFileSystemHandle) handle = await item.getAsFileSystemHandle(); } catch (e) { handle = null; }
+  loadText(await file.text(), file.name, handle);
+});
+
+// Editor top bar
+$('btnOpen').addEventListener('click', async () => { if (await guardUnsaved()) { saveDraftNow(); F = null; showStart(); } });
+$('btnSave').addEventListener('click', save);
+$('btnMo').addEventListener('click', downloadMo);
+$('btnUpdatePot').addEventListener('click', () => { $('potInput').dataset.mode = 'update'; $('potInput').click(); });
+$('btnValidate').addEventListener('click', () => {
+  filter = 'warn'; rebuildView(false); renderAll(); scrollToSel();
+  const c = counts();
+  toast(c.warn ? `${c.warn} string${c.warn === 1 ? ' has' : 's have'} a warning.` : 'No warnings. Placeholders and line breaks all match.');
+});
+$('btnPretranslate').addEventListener('click', async () => {
+  const todo = F.entries.filter((e) => e.editable && e.idPlural === null && statusOf(e) === 'empty');
+  let n = 0;
+  for (const e of todo) {
+    const hit = TM[F.lang + '\u0001' + e.id];
+    if (!hit) continue;
+    e.strs = [hit.t]; setFuzzy(e, true); e.warn = warningsOf(e); touch(e); n++;
+  }
+  if (!n) { toast('No exact matches in the team memory for the untranslated strings.'); return; }
+  filter = 'review'; rebuildView(false); renderAll(); scrollToSel();
+  toast(`${n} string${n === 1 ? '' : 's'} filled from the team memory and marked for review.`);
+});
+$('btnProps').addEventListener('click', () => {
+  const h = headerOf(F.entries);
+  $('pName').value = store.get('poe.name', '');
+  fillLangSelect($('pLang'), F.lang || 'km');
+  $('pPlural').value = headerGet(h, 'Plural-Forms') || langPlural(F.lang);
+  $('propsDlg').returnValue = '';
+  $('propsDlg').showModal();
+});
+$('pLang').addEventListener('change', () => { $('pPlural').value = langPlural($('pLang').value); });
+$('propsDlg').addEventListener('close', () => {
+  if ($('propsDlg').returnValue !== 'ok') return;
+  store.set('poe.name', $('pName').value.trim());
+  const h = headerOf(F.entries);
+  const lang = $('pLang').value, plural = $('pPlural').value.trim();
+  if (lang !== F.lang || plural !== headerGet(h, 'Plural-Forms')) {
+    headerSet(h, 'Language', lang);
+    if (plural) headerSet(h, 'Plural-Forms', plural);
+    F.lang = lang;
+    F.nplurals = npluralsOf(h);
+    F.entries.forEach((e) => {
+      if (!e.editable || e.idPlural === null || e.strs.length === F.nplurals) return;
+      e.strs = Array.from({ length: F.nplurals }, (_, i) => e.strs[i] || ''); e.warn = warningsOf(e); e.dirty = true;
+    });
+    F.dirty = true; saveDraft();
+  }
+  renderAll();
+});
+
+// List
+$('tabs').addEventListener('click', (ev) => {
+  const b = ev.target.closest('.tab');
+  if (!b) return;
+  filter = b.dataset.f; rebuildView(true); renderProgress(); renderList(); renderEditor(); $('list').scrollTop = 0; scrollToSel();
+});
+$('q').addEventListener('input', debounce((ev) => { query = ev.target.value.trim(); rebuildView(true); renderProgress(); renderList(); renderEditor(); }, 150));
+$('list').addEventListener('scroll', renderList);
+window.addEventListener('resize', () => { if (F) renderList(); });
+$('listInner').addEventListener('click', (ev) => { const r = ev.target.closest('.row'); if (r) select(+r.dataset.i); });
+
+// Editor
+$('trBoxes').addEventListener('input', (ev) => {
+  const t = ev.target.closest('textarea');
+  const e = F.entries[sel];
+  if (!t || !e) return;
+  e.strs[+t.dataset.i] = t.value;
+  e.warn = warningsOf(e);
+  touch(e);
+  renderWarnings(); renderList(); renderProgress();
+});
+$('btnReview').addEventListener('click', () => {
+  const e = F.entries[sel];
+  setFuzzy(e, !e.flags.includes('fuzzy'));
+  $('btnReview').setAttribute('aria-pressed', String(e.flags.includes('fuzzy')));
+  renderList(); renderProgress(); renderSide();
+});
+$('btnCopy').addEventListener('click', () => { const e = F.entries[sel]; if (e) applyTranslation(e.idPlural !== null && F.nplurals > 1 ? e.idPlural : e.id); });
+$('btnPrev').addEventListener('click', () => move(-1));
+$('btnNext').addEventListener('click', () => move(1));
+$('btnDone').addEventListener('click', doneAndNext);
+$('suggs').addEventListener('click', (ev) => { const b = ev.target.closest('.sugg'); if (b) applyTranslation(suggList[+b.dataset.s].t); });
+$('comment').addEventListener('input', (ev) => {
+  const e = F.entries[sel];
+  if (!e) return;
+  e.comments = ev.target.value ? ev.target.value.split('\n') : [];
+  touch(e);
+});
+
+// Keyboard
+document.addEventListener('keydown', (ev) => {
+  if (!F || !$('start').hidden || document.querySelector('dialog[open]')) return;
+  const mod = ev.ctrlKey || ev.metaKey;
+  if (mod && ev.key.toLowerCase() === 's') { ev.preventDefault(); save(); }
+  else if (mod && ev.key === 'Enter') { ev.preventDefault(); doneAndNext(); }
+  else if (mod && ev.key.toLowerCase() === 'f') { ev.preventDefault(); $('q').focus(); $('q').select(); }
+  else if (mod && ev.key.toLowerCase() === 'u') { ev.preventDefault(); $('btnReview').click(); }
+  else if (mod && ev.key.toLowerCase() === 'b') { ev.preventDefault(); $('btnCopy').click(); }
+  else if (mod && /^[1-4]$/.test(ev.key) && suggList[+ev.key - 1]) { ev.preventDefault(); applyTranslation(suggList[+ev.key - 1].t); }
+  else if (ev.altKey && ev.key === 'ArrowDown') { ev.preventDefault(); move(1); }
+  else if (ev.altKey && ev.key === 'ArrowUp') { ev.preventDefault(); move(-1); }
+});
+
+/* ======================================================================
+   Start
+   ====================================================================== */
+fillLangSelect($('newLang'), 'km');
+showStart();
+</script>
+</body>
+</html>
